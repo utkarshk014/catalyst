@@ -813,3 +813,111 @@ GraphQL query: query GetTasks($projectId: String!) {
     descr...
 API Key present: True
 Organization found: Nothing Phone
+GraphQL query: mutation SignUpOrganization($name: String!, $contactEmail: String!, $password: String!) {
+  signUpOr...
+Allowing auth mutation without API key
+GraphQL query: query GetProjects {
+  allProjects {
+    id
+    name
+    description
+    status
+    dueDate
+    taskC...
+API Key present: True
+Organization found: Apple
+GraphQL query: mutation CreateProject($name: String!, $description: String, $dueDate: String) {
+  createProject(nam...
+API Key present: True
+Organization found: Apple
+GraphQL query: query GetProjects {
+  allProjects {
+    id
+    name
+    description
+    status
+    dueDate
+    taskC...
+API Key present: True
+Organization found: Apple
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Apple
+GraphQL query: mutation CreateTask($projectId: String!, $title: String!, $description: String, $status: String, $as...
+API Key present: True
+Organization found: Apple
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Apple
+GraphQL query: mutation CreateTask($projectId: String!, $title: String!, $description: String, $status: String, $as...
+API Key present: True
+Organization found: Apple
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Apple
+GraphQL query: mutation CreateTaskComment($taskId: String!, $content: String!, $authorEmail: String!) {
+  createTas...
+API Key present: True
+Organization found: Apple
+GraphQL query: mutation CreateTaskComment($taskId: String!, $content: String!, $authorEmail: String!) {
+  createTas...
+API Key present: True
+Organization found: Apple
+GraphQL query: mutation DeleteTask($taskId: String!) {
+  deleteTask(taskId: $taskId) {
+    success
+    message
+    ...
+API Key present: True
+Organization found: Apple
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Apple
+GraphQL query: mutation UpdateTask($taskId: String!, $title: String, $description: String, $status: String, $assign...
+API Key present: True
+Organization found: Apple
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Apple
+GraphQL query: mutation UpdateTaskStatus($taskId: String!, $status: String!) {
+  updateTaskStatus(taskId: $taskId, ...
+API Key present: True
+Organization found: Apple
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Apple
+GraphQL query: mutation UpdateTaskStatus($taskId: String!, $status: String!) {
+  updateTaskStatus(taskId: $taskId, ...
+API Key present: True
+Organization found: Apple
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Apple
