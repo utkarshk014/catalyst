@@ -26,7 +26,7 @@ class ProjectType(DjangoObjectType):
 class TaskType(DjangoObjectType):
     class Meta:
         model = Task
-        fields = ("id", "title", "description", "status", "assignee_email", "due_date", "project", "taskcomment_set")
+        fields = ("id", "title", "description", "status", "priority", "assignee_email", "due_date", "project", "taskcomment_set")
 
 class TaskCommentType(DjangoObjectType):
     class Meta:
@@ -83,7 +83,7 @@ class CreateTask(graphene.Mutation):
         description = graphene.String()
         status = graphene.String()
         assignee_email = graphene.String()
-        due_date = graphene.DateTime()
+        due_date = graphene.Date()
 
     task = graphene.Field(TaskType)
 
@@ -95,13 +95,20 @@ class CreateTask(graphene.Mutation):
             if project.organization != request_org:
                 raise Exception("Not authorized to create tasks for this project")
             
+            # Convert date to datetime with 23:59:59
+            if due_date:
+                from datetime import datetime, time
+                due_datetime = datetime.combine(due_date, time(23, 59, 59))
+            else:
+                due_datetime = None
+            
             task = Task.objects.create(
                 project=project,
                 title=title,
                 description=description,
                 status=status,
                 assignee_email=assignee_email,
-                due_date=due_date
+                due_date=due_datetime
             )
             return CreateTask(task=task)
         except Project.DoesNotExist:
@@ -128,6 +135,85 @@ class UpdateTaskStatus(graphene.Mutation):
         except Task.DoesNotExist:
             raise Exception(f"Task with ID {task_id} does not exist")
 
+class DeleteTask(graphene.Mutation):
+    class Arguments:
+        task_id = graphene.Int(required=True)
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    @staticmethod
+    def mutate(root, info, task_id):
+        request_org = info.context.organization
+        try:
+            task = Task.objects.get(pk=task_id)
+            if task.project.organization != request_org:
+                raise Exception("Not authorized to delete this task")
+            
+            task.delete()
+            return DeleteTask(success=True, message="Task deleted successfully")
+        except Task.DoesNotExist:
+            raise Exception(f"Task {task_id} does not exist")
+
+class DeleteProject(graphene.Mutation):
+    class Arguments:
+        project_id = graphene.Int(required=True)
+
+    success = graphene.Boolean()
+    message = graphene.String()
+
+    @staticmethod
+    def mutate(root, info, project_id):
+        request_org = info.context.organization
+        try:
+            project = Project.objects.get(id=project_id)
+            if project.organization != request_org:
+                raise Exception("Not authorized to delete this project")
+            
+            project.delete()
+            return DeleteProject(success=True, message="Project deleted successfully")
+        except Project.DoesNotExist:
+            raise Exception(f"Project {project_id} does not exist")
+
+class UpdateTask(graphene.Mutation):
+    class Arguments:
+        task_id = graphene.Int(required=True)
+        title = graphene.String()
+        description = graphene.String()
+        status = graphene.String()
+        assignee_email = graphene.String()
+        due_date = graphene.Date()
+
+    task = graphene.Field(TaskType)
+
+    @staticmethod
+    def mutate(root, info, task_id, title=None, description=None, status=None, assignee_email=None, due_date=None):
+        request_org = info.context.organization
+        try:
+            task = Task.objects.get(pk=task_id)
+            if task.project.organization != request_org:
+                raise Exception("Not authorized to update this task")
+            
+            # Update fields if provided
+            if title is not None:
+                task.title = title
+            if description is not None:
+                task.description = description
+            if status is not None:
+                task.status = status
+            if assignee_email is not None:
+                task.assignee_email = assignee_email
+            if due_date is not None:
+                # Convert date to datetime with 23:59:59
+                from datetime import datetime, time
+                due_datetime = datetime.combine(due_date, time(23, 59, 59))
+                task.due_date = due_datetime
+            
+            task.save()
+            return UpdateTask(task=task)
+        except Task.DoesNotExist:
+            raise Exception(f"Task {task_id} does not exist")
+
 class CreateTaskComment(graphene.Mutation):
     class Arguments:
         task_id = graphene.Int(required=True)
@@ -151,7 +237,7 @@ class CreateTaskComment(graphene.Mutation):
             )
             return CreateTaskComment(comment=comment)
         except Task.DoesNotExist:
-            raise Exception(f"Task with ID {task_id} does not exist")
+            raise Exception(f"Task {task_id} does not exist")
 
 class CreateOrganization(graphene.Mutation):
     class Arguments:
@@ -175,6 +261,7 @@ class AuthResponse(graphene.ObjectType):
     success = graphene.Boolean()
     message = graphene.String()
     api_key = graphene.String()
+    organization = graphene.Field(OrganizationType)
 
 class SignUpOrganization(graphene.Mutation):
     class Arguments:
@@ -204,7 +291,8 @@ class SignUpOrganization(graphene.Mutation):
             return AuthResponse(
                 success=True,
                 message="Organization created successfully",
-                api_key=org.api_key
+                api_key=org.api_key,
+                organization=org
             )
         except Exception as e:
             return AuthResponse(
@@ -226,11 +314,12 @@ class LoginOrganization(graphene.Mutation):
             org = Organization.objects.get(contact_email=email)
             
             if org.check_password(password):
-                return AuthResponse(
-                    success=True,
-                    message="Login successful",
-                    api_key=org.api_key
-                )
+                            return AuthResponse(
+                success=True,
+                message="Login successful",
+                api_key=org.api_key,
+                organization=org
+            )
             else:
                 return AuthResponse(
                     success=False,
@@ -250,7 +339,10 @@ class Mutation(graphene.ObjectType):
     create_organization = CreateOrganization.Field()
     create_project = CreateProject.Field()
     create_task = CreateTask.Field()  # This was missing in the second definition
+    update_task = UpdateTask.Field()
     update_task_status = UpdateTaskStatus.Field()
+    delete_task = DeleteTask.Field()
+    delete_project = DeleteProject.Field()
     create_task_comment = CreateTaskComment.Field()
     sign_up_organization = SignUpOrganization.Field()
     login_organization = LoginOrganization.Field()

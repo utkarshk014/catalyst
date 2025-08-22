@@ -1,19 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Presentation,
-  Settings2,
-  SquareTerminal,
-} from "lucide-react";
+import { CheckSquare, FolderOpen } from "lucide-react";
 
 import { NavProjects } from "@/components/nav-projects";
 import {
@@ -24,28 +12,36 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
-
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  projects: [
-    {
-      name: "Projects",
-      url: "#",
-      icon: Presentation,
-    },
-  ],
-};
+import { useAuthStore } from "@/store/authStore";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { organizationName, organizationEmail } = useAuthStore();
+
+  // Sample data for navigation
+  const data = {
+    user: {
+      name: organizationName || "Organization",
+      email: organizationEmail || "email@example.com",
+      avatar: "/avatars/shadcn.jpg",
+    },
+    projects: [
+      {
+        name: "Projects",
+        url: "#",
+        icon: FolderOpen,
+      },
+      {
+        name: "Tasks",
+        url: "#",
+        icon: CheckSquare,
+      },
+    ],
+  };
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <h1>Logo</h1>
+        <h1 className="text-xl font-bold">Catalyst</h1>
       </SidebarHeader>
       <SidebarContent>
         <NavProjects projects={data.projects} />

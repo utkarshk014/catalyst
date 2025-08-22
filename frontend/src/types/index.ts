@@ -21,6 +21,7 @@ export interface Task {
   title: string;
   description: string;
   status: "TODO" | "IN_PROGRESS" | "DONE";
+  priority: "LOW" | "MEDIUM" | "HIGH";
   assigneeEmail: string;
   dueDate?: string;
   project: {
@@ -67,5 +68,25 @@ export interface UpdateTaskStatusData {
 export interface CreateTaskCommentData {
   createTaskComment: {
     comment: TaskComment;
+  };
+}
+
+export interface UpdateTaskData {
+  updateTask: {
+    task: Task;
+  };
+}
+
+export interface DeleteTaskData {
+  deleteTask: {
+    success: boolean;
+    message: string;
+  };
+}
+
+export interface DeleteProjectData {
+  deleteProject: {
+    success: boolean;
+    message: string;
   };
 }

@@ -1,8 +1,8 @@
 import { gql } from "@apollo/client";
 
 export const GET_PROJECTS = gql`
-  query GetProjects($organizationSlug: String!) {
-    allProjects(organizationSlug: $organizationSlug) {
+  query GetProjects {
+    allProjects {
       id
       name
       description
@@ -27,6 +27,7 @@ export const GET_TASKS = gql`
       title
       description
       status
+      priority
       assigneeEmail
       dueDate
       project {
@@ -45,16 +46,8 @@ export const GET_TASKS = gql`
 
 // GraphQL Mutations
 export const CREATE_PROJECT = gql`
-  mutation CreateProject(
-    $name: String!
-    $description: String
-    $organizationSlug: String!
-  ) {
-    createProject(
-      name: $name
-      description: $description
-      organizationSlug: $organizationSlug
-    ) {
+  mutation CreateProject($name: String!, $description: String) {
+    createProject(name: $name, description: $description) {
       project {
         id
         name
@@ -81,7 +74,7 @@ export const CREATE_TASK = gql`
     $description: String
     $status: String
     $assigneeEmail: String
-    $dueDate: DateTime
+    $dueDate: Date
   ) {
     createTask(
       projectId: $projectId
@@ -96,6 +89,7 @@ export const CREATE_TASK = gql`
         title
         description
         status
+        priority
         assigneeEmail
         dueDate
       }
@@ -111,9 +105,57 @@ export const UPDATE_TASK_STATUS = gql`
         title
         description
         status
+        priority
         assigneeEmail
         dueDate
       }
+    }
+  }
+`;
+
+export const UPDATE_TASK = gql`
+  mutation UpdateTask(
+    $taskId: Int!
+    $title: String
+    $status: String
+    $assigneeEmail: String
+    $dueDate: Date
+  ) {
+    updateTask(
+      taskId: $taskId
+      title: $title
+      description: $description
+      status: $status
+      assigneeEmail: $assigneeEmail
+      dueDate: $dueDate
+    ) {
+      task {
+        id
+        title
+        description
+        status
+        priority
+        assigneeEmail
+        dueDate
+      }
+    }
+  }
+`;
+
+export const DELETE_TASK = gql`
+  mutation DeleteTask($taskId: Int!) {
+    deleteTask(taskId: $taskId) {
+      success
+      message
+    }
+  }
+`;
+
+export const DELETE_PROJECT = gql`
+  mutation DeleteProject($projectId: Int!) {
+    deleteProject(projectId: $projectId) {
+      success
+      message
     }
   }
 `;
