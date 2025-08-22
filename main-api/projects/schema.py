@@ -33,55 +33,49 @@ class TaskCommentType(DjangoObjectType):
         model = TaskComment
         fields = ("id", "content", "author_email", "timestamp", "task")
 
-# Queries: Define what data can be fetched
 class Query(graphene.ObjectType):
-    organization = graphene.Field(OrganizationType, slug=graphene.String(required=True))
-    all_projects = graphene.List(ProjectType, organization_slug=graphene.String(required=True))
+    organization = graphene.Field(OrganizationType)
+    all_projects = graphene.List(ProjectType)
     all_tasks = graphene.List(TaskType, project_id=graphene.Int(required=True))
 
-    def resolve_all_projects(self, info, organization_slug):
-        # Implement multi-tenancy by filtering projects based on the organization slug
-        try:
-            organization = Organization.objects.get(slug=organization_slug)
-            return Project.objects.filter(organization=organization)
-        except Organization.DoesNotExist:
-            return Project.objects.none() # Return an empty queryset if organization not found
+    def resolve_organization(self, info):
+        return info.context.organization
+
+    def resolve_all_projects(self, info):
+        request_org = info.context.organization
+        return Project.objects.filter(organization=request_org)
 
     def resolve_all_tasks(self, info, project_id):
-        return Task.objects.filter(project_id=project_id)
-    
-    def resolve_organization(self, info, slug):
+        request_org = info.context.organization
         try:
-            return Organization.objects.get(slug=slug)
-        except Organization.DoesNotExist:
-            return None
+            project = Project.objects.get(id=project_id)
+            if project.organization != request_org:
+                raise Exception("Not authorized to access this project's tasks")
+            return Task.objects.filter(project_id=project_id)
+        except Project.DoesNotExist:
+            raise Exception(f"Project with ID {project_id} does not exist")   
 
-# Mutations: Define how to create, update, and delete data
 class CreateProject(graphene.Mutation):
     class Arguments:
         name = graphene.String(required=True)
         description = graphene.String()
         status = graphene.String()
-        organization_slug = graphene.String(required=True)
         due_date = graphene.Date()
 
     project = graphene.Field(ProjectType)
 
     @staticmethod
-    def mutate(root, info, name, organization_slug, description=None, status=None, due_date=None):
-        try:
-            organization = Organization.objects.get(slug=organization_slug)
-            project = Project.objects.create(
-                name=name,
-                description=description,
-                status=status or 'ACTIVE',
-                due_date=due_date,
-                organization=organization
-            )
-            return CreateProject(project=project)
-        except Organization.DoesNotExist:
-            return CreateProject(project=None)
-        
+    def mutate(root, info, name, description=None, status=None, due_date=None):
+        request_org = info.context.organization
+        project = Project.objects.create(
+            name=name,
+            description=description,
+            status=status or 'ACTIVE',
+            due_date=due_date,
+            organization=request_org
+        )
+        return CreateProject(project=project)
+
 class CreateTask(graphene.Mutation):
     class Arguments:
         project_id = graphene.Int(required=True)
@@ -95,8 +89,12 @@ class CreateTask(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, project_id, title, description=None, status="TODO", assignee_email=None, due_date=None):
+        request_org = info.context.organization
         try:
             project = Project.objects.get(id=project_id)
+            if project.organization != request_org:
+                raise Exception("Not authorized to create tasks for this project")
+            
             task = Task.objects.create(
                 project=project,
                 title=title,
@@ -118,10 +116,17 @@ class UpdateTaskStatus(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, task_id, status):
-        task = Task.objects.get(pk=task_id)
-        task.status = status
-        task.save()
-        return UpdateTaskStatus(task=task)
+        request_org = info.context.organization
+        try:
+            task = Task.objects.get(pk=task_id)
+            if task.project.organization != request_org:
+                raise Exception("Not authorized to update this task")
+            
+            task.status = status
+            task.save()
+            return UpdateTaskStatus(task=task)
+        except Task.DoesNotExist:
+            raise Exception(f"Task with ID {task_id} does not exist")
 
 class CreateTaskComment(graphene.Mutation):
     class Arguments:
@@ -133,19 +138,20 @@ class CreateTaskComment(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, task_id, content, author_email):
-        task = Task.objects.get(pk=task_id)
-        comment = TaskComment.objects.create(
-            task=task,
-            content=content,
-            author_email=author_email
-        )
-        return CreateTaskComment(comment=comment)
-
-# class Mutation(graphene.ObjectType):
-#     create_project = CreateProject.Field()
-#     update_task_status = UpdateTaskStatus.Field()
-#     create_task_comment = CreateTaskComment.Field()
-#     create_task = CreateTask.Field()
+        request_org = info.context.organization
+        try:
+            task = Task.objects.get(pk=task_id)
+            if task.project.organization != request_org:
+                raise Exception("Not authorized to comment on this task")
+            
+            comment = TaskComment.objects.create(
+                task=task,
+                content=content,
+                author_email=author_email
+            )
+            return CreateTaskComment(comment=comment)
+        except Task.DoesNotExist:
+            raise Exception(f"Task with ID {task_id} does not exist")
 
 class CreateOrganization(graphene.Mutation):
     class Arguments:
