@@ -64,35 +64,15 @@ class Project(models.Model):
         return f"{self.name} ({self.organization.name})"
 
 class Task(models.Model):
-    PRIORITY_CHOICES = (
-        ('LOW', 'Low'),
-        ('MEDIUM', 'Medium'),
-        ('HIGH', 'High'),
-    )
-    
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=TASK_STATUS_CHOICES, default='TODO')
-    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
     assignee_email = models.EmailField(blank=True, null=True)
-    due_date = models.DateTimeField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
 
-    def save(self, *args, **kwargs):
-        # Auto-calculate priority based on due date
-        if self.due_date:
-            from datetime import datetime, timedelta
-            now = datetime.now()
-            days_until_due = (self.due_date - now).days
-            
-            if days_until_due <= 2:
-                self.priority = 'HIGH'
-            elif days_until_due <= 10:
-                self.priority = 'MEDIUM'
-            else:
-                self.priority = 'LOW'
-        
-        super().save(*args, **kwargs)
+    def __str__(self):
+        return self.title
 
     def __str__(self):
         return self.title

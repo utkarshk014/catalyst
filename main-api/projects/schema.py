@@ -10,23 +10,23 @@ class OrganizationType(DjangoObjectType):
         fields = ("id", "name", "slug", "contact_email")
 
 class ProjectType(DjangoObjectType):
-    task_count = graphene.Int()
-    completed_tasks = graphene.Int()
+    taskCount = graphene.Int()
+    completedTasks = graphene.Int()
 
     class Meta:
         model = Project
         fields = ("id", "name", "description", "status", "due_date", "organization", "task_set")
 
-    def resolve_task_count(self, info):
+    def resolve_taskCount(self, info):
         return self.task_set.count()
 
-    def resolve_completed_tasks(self, info):
+    def resolve_completedTasks(self, info):
         return self.task_set.filter(status='DONE').count()
 
 class TaskType(DjangoObjectType):
     class Meta:
         model = Task
-        fields = ("id", "title", "description", "status", "priority", "assignee_email", "due_date", "project", "taskcomment_set")
+        fields = ("id", "title", "description", "status", "assignee_email", "due_date", "project", "taskcomment_set")
 
 class TaskCommentType(DjangoObjectType):
     class Meta:
@@ -36,7 +36,7 @@ class TaskCommentType(DjangoObjectType):
 class Query(graphene.ObjectType):
     organization = graphene.Field(OrganizationType)
     all_projects = graphene.List(ProjectType)
-    all_tasks = graphene.List(TaskType, project_id=graphene.Int(required=True))
+    all_tasks = graphene.List(TaskType, project_id=graphene.String(required=True))
 
     def resolve_organization(self, info):
         return info.context.organization
@@ -48,11 +48,13 @@ class Query(graphene.ObjectType):
     def resolve_all_tasks(self, info, project_id):
         request_org = info.context.organization
         try:
-            project = Project.objects.get(id=project_id)
+            # Convert string project_id to int
+            project_id_int = int(project_id)
+            project = Project.objects.get(id=project_id_int)
             if project.organization != request_org:
                 raise Exception("Not authorized to access this project's tasks")
-            return Task.objects.filter(project_id=project_id)
-        except Project.DoesNotExist:
+            return Task.objects.filter(project_id=project_id_int)
+        except (ValueError, Project.DoesNotExist):
             raise Exception(f"Project with ID {project_id} does not exist")   
 
 class CreateProject(graphene.Mutation):
@@ -60,137 +62,175 @@ class CreateProject(graphene.Mutation):
         name = graphene.String(required=True)
         description = graphene.String()
         status = graphene.String()
-        due_date = graphene.Date()
+        dueDate = graphene.String()
 
     project = graphene.Field(ProjectType)
 
     @staticmethod
-    def mutate(root, info, name, description=None, status=None, due_date=None):
+    def mutate(root, info, name, description=None, status=None, dueDate=None):
         request_org = info.context.organization
+        
+        # Parse dueDate if provided
+        parsed_due_date = None
+        if dueDate:
+            try:
+                from datetime import datetime
+                # Extract just the date part from ISO string or parse date string
+                if 'T' in dueDate:
+                    parsed_due_date = datetime.fromisoformat(dueDate.split('T')[0]).date()
+                else:
+                    parsed_due_date = datetime.strptime(dueDate, '%Y-%m-%d').date()
+            except ValueError:
+                raise Exception("Invalid date format")
+        
         project = Project.objects.create(
             name=name,
             description=description,
             status=status or 'ACTIVE',
-            due_date=due_date,
+            due_date=parsed_due_date,
             organization=request_org
         )
         return CreateProject(project=project)
 
 class CreateTask(graphene.Mutation):
     class Arguments:
-        project_id = graphene.Int(required=True)
+        projectId = graphene.String(required=True)
         title = graphene.String(required=True)
         description = graphene.String()
         status = graphene.String()
-        assignee_email = graphene.String()
-        due_date = graphene.Date()
+        assigneeEmail = graphene.String()
+        dueDate = graphene.String()
 
     task = graphene.Field(TaskType)
 
     @staticmethod
-    def mutate(root, info, project_id, title, description=None, status="TODO", assignee_email=None, due_date=None):
+    def mutate(root, info, projectId, title, description=None, status="TODO", assigneeEmail=None, dueDate=None):
         request_org = info.context.organization
         try:
-            project = Project.objects.get(id=project_id)
+            # Convert string projectId to int
+            project_id_int = int(projectId)
+            project = Project.objects.get(id=project_id_int)
             if project.organization != request_org:
                 raise Exception("Not authorized to create tasks for this project")
             
-            # Convert date to datetime with 23:59:59
-            if due_date:
-                from datetime import datetime, time
-                due_datetime = datetime.combine(due_date, time(23, 59, 59))
-            else:
-                due_datetime = None
+            # Parse dueDate if provided
+            due_date_obj = None
+            if dueDate:
+                try:
+                    from datetime import datetime
+                    # Extract just the date part from ISO string or parse date string
+                    if 'T' in dueDate:
+                        due_date_obj = datetime.fromisoformat(dueDate.split('T')[0]).date()
+                    else:
+                        due_date_obj = datetime.strptime(dueDate, '%Y-%m-%d').date()
+                except ValueError:
+                    raise Exception("Invalid date format")
             
             task = Task.objects.create(
                 project=project,
                 title=title,
                 description=description,
                 status=status,
-                assignee_email=assignee_email,
-                due_date=due_datetime
+                assignee_email=assigneeEmail,
+                due_date=due_date_obj
             )
             return CreateTask(task=task)
+        except ValueError:
+            raise Exception(f"Invalid project ID: {projectId}")
         except Project.DoesNotExist:
-            raise Exception(f"Project with ID {project_id} does not exist")
+            raise Exception(f"Project with ID {projectId} does not exist")
 
 class UpdateTaskStatus(graphene.Mutation):
     class Arguments:
-        task_id = graphene.Int(required=True)
+        taskId = graphene.String(required=True)
         status = graphene.String(required=True)
 
     task = graphene.Field(TaskType)
 
     @staticmethod
-    def mutate(root, info, task_id, status):
+    def mutate(root, info, taskId, status):
         request_org = info.context.organization
         try:
-            task = Task.objects.get(pk=task_id)
+            # Convert string taskId to int
+            task_id_int = int(taskId)
+            task = Task.objects.get(pk=task_id_int)
             if task.project.organization != request_org:
                 raise Exception("Not authorized to update this task")
             
             task.status = status
             task.save()
             return UpdateTaskStatus(task=task)
+        except ValueError:
+            raise Exception(f"Invalid task ID: {taskId}")
         except Task.DoesNotExist:
-            raise Exception(f"Task with ID {task_id} does not exist")
+            raise Exception(f"Task with ID {taskId} does not exist")
 
 class DeleteTask(graphene.Mutation):
     class Arguments:
-        task_id = graphene.Int(required=True)
+        taskId = graphene.String(required=True)
 
     success = graphene.Boolean()
     message = graphene.String()
 
     @staticmethod
-    def mutate(root, info, task_id):
+    def mutate(root, info, taskId):
         request_org = info.context.organization
         try:
-            task = Task.objects.get(pk=task_id)
+            # Convert string taskId to int
+            task_id_int = int(taskId)
+            task = Task.objects.get(pk=task_id_int)
             if task.project.organization != request_org:
                 raise Exception("Not authorized to delete this task")
             
             task.delete()
             return DeleteTask(success=True, message="Task deleted successfully")
+        except ValueError:
+            raise Exception(f"Invalid task ID: {taskId}")
         except Task.DoesNotExist:
-            raise Exception(f"Task {task_id} does not exist")
+            raise Exception(f"Task {taskId} does not exist")
 
 class DeleteProject(graphene.Mutation):
     class Arguments:
-        project_id = graphene.Int(required=True)
+        projectId = graphene.String(required=True)
 
     success = graphene.Boolean()
     message = graphene.String()
 
     @staticmethod
-    def mutate(root, info, project_id):
+    def mutate(root, info, projectId):
         request_org = info.context.organization
         try:
-            project = Project.objects.get(id=project_id)
+            # Convert string projectId to int
+            project_id_int = int(projectId)
+            project = Project.objects.get(id=project_id_int)
             if project.organization != request_org:
                 raise Exception("Not authorized to delete this project")
             
             project.delete()
             return DeleteProject(success=True, message="Project deleted successfully")
+        except ValueError:
+            raise Exception(f"Invalid project ID: {projectId}")
         except Project.DoesNotExist:
-            raise Exception(f"Project {project_id} does not exist")
+            raise Exception(f"Project {projectId} does not exist")
 
 class UpdateTask(graphene.Mutation):
     class Arguments:
-        task_id = graphene.Int(required=True)
+        taskId = graphene.String(required=True)
         title = graphene.String()
         description = graphene.String()
         status = graphene.String()
-        assignee_email = graphene.String()
-        due_date = graphene.Date()
+        assigneeEmail = graphene.String()
+        dueDate = graphene.String()
 
     task = graphene.Field(TaskType)
 
     @staticmethod
-    def mutate(root, info, task_id, title=None, description=None, status=None, assignee_email=None, due_date=None):
+    def mutate(root, info, taskId, title=None, description=None, status=None, assigneeEmail=None, dueDate=None):
         request_org = info.context.organization
         try:
-            task = Task.objects.get(pk=task_id)
+            # Convert string taskId to int
+            task_id_int = int(taskId)
+            task = Task.objects.get(pk=task_id_int)
             if task.project.organization != request_org:
                 raise Exception("Not authorized to update this task")
             
@@ -201,43 +241,56 @@ class UpdateTask(graphene.Mutation):
                 task.description = description
             if status is not None:
                 task.status = status
-            if assignee_email is not None:
-                task.assignee_email = assignee_email
-            if due_date is not None:
-                # Convert date to datetime with 23:59:59
-                from datetime import datetime, time
-                due_datetime = datetime.combine(due_date, time(23, 59, 59))
-                task.due_date = due_datetime
+            if assigneeEmail is not None:
+                task.assignee_email = assigneeEmail
+            if dueDate is not None:
+                # Parse dueDate if provided
+                try:
+                    from datetime import datetime
+                    # Extract just the date part from ISO string or parse date string
+                    if 'T' in dueDate:
+                        due_date_obj = datetime.fromisoformat(dueDate.split('T')[0]).date()
+                    else:
+                        due_date_obj = datetime.strptime(dueDate, '%Y-%m-%d').date()
+                    task.due_date = due_date_obj
+                except ValueError:
+                    raise Exception("Invalid date format")
             
             task.save()
             return UpdateTask(task=task)
+        except ValueError:
+            raise Exception(f"Invalid task ID: {taskId}")
         except Task.DoesNotExist:
-            raise Exception(f"Task {task_id} does not exist")
+            raise Exception(f"Task {taskId} does not exist")
 
 class CreateTaskComment(graphene.Mutation):
     class Arguments:
-        task_id = graphene.Int(required=True)
+        taskId = graphene.String(required=True)
         content = graphene.String(required=True)
-        author_email = graphene.String(required=True)
+        authorEmail = graphene.String(required=True)
 
     comment = graphene.Field(TaskCommentType)
 
     @staticmethod
-    def mutate(root, info, task_id, content, author_email):
+    def mutate(root, info, taskId, content, authorEmail):
         request_org = info.context.organization
         try:
-            task = Task.objects.get(pk=task_id)
+            # Convert string taskId to int
+            task_id_int = int(taskId)
+            task = Task.objects.get(pk=task_id_int)
             if task.project.organization != request_org:
                 raise Exception("Not authorized to comment on this task")
             
             comment = TaskComment.objects.create(
                 task=task,
                 content=content,
-                author_email=author_email
+                author_email=authorEmail
             )
             return CreateTaskComment(comment=comment)
+        except ValueError:
+            raise Exception(f"Invalid task ID: {taskId}")
         except Task.DoesNotExist:
-            raise Exception(f"Task {task_id} does not exist")
+            raise Exception(f"Task {taskId} does not exist")
 
 class CreateOrganization(graphene.Mutation):
     class Arguments:

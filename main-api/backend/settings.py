@@ -123,7 +123,12 @@ DATABASES = {
 }
 
 GRAPHENE = {
-    'SCHEMA': 'projects.schema.schema'
+    'SCHEMA': 'projects.schema.schema',
+    'MIDDLEWARE': [
+        'graphene_django.debug.DjangoDebugMiddleware',
+    ],
+    'SCHEMA_OUTPUT': 'graphql',
+    'SCHEMA_INDENT': 2,
 }
 
 # Logging configuration

@@ -584,3 +584,205 @@ GraphQL query: mutation CreateTask($projectId: Int!, $title: String!, $descripti
 API Key present: True
 Organization found: Nothing Phone
 Bad Request: /graphql/
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/backend/settings.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/backend/settings.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+GraphQL query: query GetProjects {
+  allProjects {
+    id
+    name
+    description
+    status
+    dueDate
+    taskC...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation CreateTask($projectId: String!, $title: String!, $description: String, $status: String, $as...
+API Key present: True
+Organization found: Nothing Phone
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/models.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+GraphQL query: query GetProjects {
+  allProjects {
+    id
+    name
+    description
+    status
+    dueDate
+    taskC...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation CreateTask($projectId: String!, $title: String!, $description: String, $status: String, $as...
+API Key present: True
+Organization found: Nothing Phone
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/models.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/schema.py changed, reloading.
+Watching for file changes with StatReloader
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/projects/models.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+GraphQL query: query GetProjects {
+  allProjects {
+    id
+    name
+    description
+    status
+    dueDate
+    taskC...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation CreateTask($projectId: String!, $title: String!, $description: String, $status: String, $as...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation CreateTaskComment($taskId: String!, $content: String!, $authorEmail: String!) {
+  createTas...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+/Users/utkarshsuneela/Downloads/Catalyst - project management/main-api/backend/settings.py changed, reloading.
+Watching for file changes with StatReloader
+GraphQL query: query GetProjects {
+  allProjects {
+    id
+    name
+    description
+    status
+    dueDate
+    taskC...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation CreateTaskComment($taskId: String!, $content: String!, $authorEmail: String!) {
+  createTas...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation CreateTask($projectId: String!, $title: String!, $description: String, $status: String, $as...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation DeleteTask($taskId: String!) {
+  deleteTask(taskId: $taskId) {
+    success
+    message
+    ...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation CreateProject($name: String!, $description: String, $dueDate: String) {
+  createProject(nam...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetProjects {
+  allProjects {
+    id
+    name
+    description
+    status
+    dueDate
+    taskC...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation CreateTask($projectId: String!, $title: String!, $description: String, $status: String, $as...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone

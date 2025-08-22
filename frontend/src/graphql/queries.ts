@@ -21,13 +21,12 @@ export const GET_PROJECTS = gql`
 `;
 
 export const GET_TASKS = gql`
-  query GetTasks($projectId: Int!) {
+  query GetTasks($projectId: String!) {
     allTasks(projectId: $projectId) {
       id
       title
       description
       status
-      priority
       assigneeEmail
       dueDate
       project {
@@ -46,8 +45,12 @@ export const GET_TASKS = gql`
 
 // GraphQL Mutations
 export const CREATE_PROJECT = gql`
-  mutation CreateProject($name: String!, $description: String) {
-    createProject(name: $name, description: $description) {
+  mutation CreateProject(
+    $name: String!
+    $description: String
+    $dueDate: String
+  ) {
+    createProject(name: $name, description: $description, dueDate: $dueDate) {
       project {
         id
         name
@@ -69,12 +72,12 @@ export const CREATE_PROJECT = gql`
 
 export const CREATE_TASK = gql`
   mutation CreateTask(
-    $projectId: Int!
+    $projectId: String!
     $title: String!
     $description: String
     $status: String
     $assigneeEmail: String
-    $dueDate: Date
+    $dueDate: String
   ) {
     createTask(
       projectId: $projectId
@@ -89,7 +92,6 @@ export const CREATE_TASK = gql`
         title
         description
         status
-        priority
         assigneeEmail
         dueDate
       }
@@ -98,14 +100,13 @@ export const CREATE_TASK = gql`
 `;
 
 export const UPDATE_TASK_STATUS = gql`
-  mutation UpdateTaskStatus($taskId: Int!, $status: String!) {
+  mutation UpdateTaskStatus($taskId: String!, $status: String!) {
     updateTaskStatus(taskId: $taskId, status: $status) {
       task {
         id
         title
         description
         status
-        priority
         assigneeEmail
         dueDate
       }
@@ -115,11 +116,12 @@ export const UPDATE_TASK_STATUS = gql`
 
 export const UPDATE_TASK = gql`
   mutation UpdateTask(
-    $taskId: Int!
+    $taskId: String!
     $title: String
+    $description: String
     $status: String
     $assigneeEmail: String
-    $dueDate: Date
+    $dueDate: String
   ) {
     updateTask(
       taskId: $taskId
@@ -134,7 +136,6 @@ export const UPDATE_TASK = gql`
         title
         description
         status
-        priority
         assigneeEmail
         dueDate
       }
@@ -143,7 +144,7 @@ export const UPDATE_TASK = gql`
 `;
 
 export const DELETE_TASK = gql`
-  mutation DeleteTask($taskId: Int!) {
+  mutation DeleteTask($taskId: String!) {
     deleteTask(taskId: $taskId) {
       success
       message
@@ -152,7 +153,7 @@ export const DELETE_TASK = gql`
 `;
 
 export const DELETE_PROJECT = gql`
-  mutation DeleteProject($projectId: Int!) {
+  mutation DeleteProject($projectId: String!) {
     deleteProject(projectId: $projectId) {
       success
       message
@@ -162,7 +163,7 @@ export const DELETE_PROJECT = gql`
 
 export const CREATE_TASK_COMMENT = gql`
   mutation CreateTaskComment(
-    $taskId: Int!
+    $taskId: String!
     $content: String!
     $authorEmail: String!
   ) {

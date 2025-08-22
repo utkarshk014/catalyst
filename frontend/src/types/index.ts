@@ -21,7 +21,6 @@ export interface Task {
   title: string;
   description: string;
   status: "TODO" | "IN_PROGRESS" | "DONE";
-  priority: "LOW" | "MEDIUM" | "HIGH";
   assigneeEmail: string;
   dueDate?: string;
   project: {
@@ -90,3 +89,18 @@ export interface DeleteProjectData {
     message: string;
   };
 }
+
+// Utility function to calculate priority based on due date
+export const calculatePriority = (
+  dueDate: string
+): "LOW" | "MEDIUM" | "HIGH" => {
+  const today = new Date();
+  const due = new Date(dueDate);
+  const daysUntilDue = Math.ceil(
+    (due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (daysUntilDue <= 2) return "HIGH";
+  if (daysUntilDue >= 3 && daysUntilDue <= 8) return "MEDIUM";
+  return "LOW";
+};

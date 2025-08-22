@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PriorityBadge } from "@/components/ui/priority-badge";
 import {
   Dialog,
   DialogContent,
@@ -151,7 +152,7 @@ export function TasksView({
           description: data.description,
           status: data.status,
           assigneeEmail: data.assigneeEmail,
-          dueDate: data.dueDate || null,
+          dueDate: data.dueDate ? data.dueDate.toISOString() : null,
         },
       });
 
@@ -231,7 +232,7 @@ export function TasksView({
     }
 
     try {
-      await createTaskComment({
+      const result = await createTaskComment({
         variables: {
           taskId: selectedTask.id,
           content: data.content,
@@ -239,13 +240,26 @@ export function TasksView({
         },
       });
 
-      toast({
-        title: "Success!",
-        description: "Comment added successfully",
-      });
+      if (result.data?.createTaskComment?.comment) {
+        // Update the selectedTask with the new comment
+        const newComment = result.data.createTaskComment.comment;
+        setSelectedTask((prev) =>
+          prev
+            ? {
+                ...prev,
+                taskcommentSet: [...(prev.taskcommentSet || []), newComment],
+              }
+            : null
+        );
 
-      commentForm.reset();
-      refetchTasks();
+        toast({
+          title: "Success!",
+          description: "Comment added successfully",
+        });
+
+        // Reset form but keep drawer open
+        commentForm.reset();
+      }
     } catch {
       toast({
         title: "Error",
@@ -273,19 +287,6 @@ export function TasksView({
         return "success";
       default:
         return "secondary";
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "HIGH":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "MEDIUM":
-        return "bg-amber-100 text-amber-800 border-amber-200";
-      case "LOW":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
@@ -401,6 +402,9 @@ export function TasksView({
                   selected={createTaskForm.watch("dueDate")}
                   onSelect={(date) => createTaskForm.setValue("dueDate", date)}
                   className="rounded-md border"
+                  disabled={(date) =>
+                    date < new Date(new Date().setHours(0, 0, 0, 0))
+                  }
                 />
               </div>
               <div className="flex justify-end gap-2">
@@ -464,12 +468,12 @@ export function TasksView({
                       <Badge variant={getStatusBadgeVariant(task.status)}>
                         {task.status}
                       </Badge>
-                      <Badge
-                        variant="outline"
-                        className={`${getPriorityColor(task.priority)} border`}
-                      >
-                        {task.priority}
-                      </Badge>
+                      {task.dueDate && (
+                        <PriorityBadge
+                          dueDate={task.dueDate}
+                          status={task.status}
+                        />
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">
                       {task.description || "No description"}
@@ -549,14 +553,12 @@ export function TasksView({
                   <Badge variant={getStatusBadgeVariant(selectedTask.status)}>
                     {selectedTask.status}
                   </Badge>
-                  <Badge
-                    variant="outline"
-                    className={`${getPriorityColor(
-                      selectedTask.priority
-                    )} border`}
-                  >
-                    {selectedTask.priority}
-                  </Badge>
+                  {selectedTask.dueDate && (
+                    <PriorityBadge
+                      dueDate={selectedTask.dueDate}
+                      status={selectedTask.status}
+                    />
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
