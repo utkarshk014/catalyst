@@ -23,7 +23,11 @@ export interface Task {
   status: "TODO" | "IN_PROGRESS" | "DONE";
   assigneeEmail: string;
   dueDate?: string;
-  project: Project;
+  project: {
+    id: string;
+    name: string;
+  };
+  taskcommentSet?: TaskComment[];
 }
 
 export interface TaskComment {
@@ -31,31 +35,36 @@ export interface TaskComment {
   content: string;
   authorEmail: string;
   timestamp: string;
-  task: Task;
 }
 
-// GraphQL Response Types
-export interface GetProjectsResponse {
+// GraphQL Response Types - match the actual schema
+export interface GetProjectsData {
   allProjects: Project[];
 }
 
-export interface GetTasksResponse {
+export interface GetTasksData {
   allTasks: Task[];
 }
 
-export interface CreateProjectResponse {
+export interface CreateProjectData {
   createProject: {
     project: Project;
   };
 }
 
-export interface UpdateTaskStatusResponse {
+export interface CreateTaskData {
+  createTask: {
+    task: Task;
+  };
+}
+
+export interface UpdateTaskStatusData {
   updateTaskStatus: {
     task: Task;
   };
 }
 
-export interface CreateTaskCommentResponse {
+export interface CreateTaskCommentData {
   createTaskComment: {
     comment: TaskComment;
   };

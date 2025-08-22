@@ -1,7 +1,19 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
-import type { Project, Task } from "@/types";
-import { graphqlClient } from "@/lib/graphql-client";
+import React, { useState } from "react";
+import { useQuery, useMutation } from "@apollo/client/react";
+
+import {
+  CreateProjectData,
+  CreateTaskCommentData,
+  CreateTaskData,
+  GetProjectsData,
+  GetTasksData,
+  Project,
+  Task,
+  UpdateTaskStatusData,
+} from "@/types";
+import { CREATE_PROJECT, CREATE_TASK, CREATE_TASK_COMMENT, GET_PROJECTS, GET_TASKS, UPDATE_TASK_STATUS } from "@/graphql/queries";
+
 
 const ProjectDashboard = () => {
   const [organizationSlug, setOrganizationSlug] = useState<string>("test-org");
@@ -15,91 +27,117 @@ const ProjectDashboard = () => {
   const [commentContent, setCommentContent] = useState<string>("");
   const [commentTaskId, setCommentTaskId] = useState<number | null>(null);
 
-  // State for data and loading
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState<boolean>(false);
-  const [tasksLoading, setTasksLoading] = useState<boolean>(false);
-  const [createProjectLoading, setCreateProjectLoading] =
-    useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
 
-  // Fetch projects
-  const fetchProjects = useCallback(async () => {
-    if (!organizationSlug) return;
+  // Apollo Client Queries with proper typing
+  const {
+    data: projectsData,
+    loading: projectsLoading,
+    error: projectsError,
+    refetch: refetchProjects,
+  } = useQuery<GetProjectsData>(GET_PROJECTS, {
+    variables: { organizationSlug },
+    skip: !organizationSlug,
+    errorPolicy: "all",
+  });
 
-    setProjectsLoading(true);
-    setError(null);
+  const {
+    data: tasksData,
+    loading: tasksLoading,
+    error: tasksError,
+    refetch: refetchTasks,
+  } = useQuery<GetTasksData>(GET_TASKS, {
+    variables: { projectId: selectedProjectId },
+    skip: !selectedProjectId,
+    errorPolicy: "all",
+  });
 
-    try {
-      const data = await graphqlClient.getProjects(organizationSlug);
-      setProjects(data.allProjects);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      setError(
-        "Failed to fetch projects. Make sure your Django server is running."
-      );
-      setProjects([]);
-    } finally {
-      setProjectsLoading(false);
+  // Apollo Client Mutations with proper typing
+  const [createProject, { loading: createProjectLoading }] =
+    useMutation<CreateProjectData>(CREATE_PROJECT, {
+      onCompleted: (data) => {
+        if (data?.createProject?.project) {
+          setNewProjectName("");
+          setNewProjectDescription("");
+          setShowCreateProject(false);
+          refetchProjects();
+        }
+      },
+      onError: (error) => {
+        console.error("Error creating project:", error);
+        alert("Failed to create project: " + error.message);
+      },
+    });
+
+  const [createTask] = useMutation<CreateTaskData>(CREATE_TASK, {
+    onCompleted: (data) => {
+      if (data?.createTask?.task) {
+        setNewTaskTitle("");
+        setNewTaskDescription("");
+        setNewTaskAssignee("");
+        setShowCreateTask(false);
+        refetchTasks();
+      }
+    },
+    onError: (error) => {
+      console.error("Error creating task:", error);
+      alert("Failed to create task: " + error.message);
+    },
+  });
+
+  const [updateTaskStatus] = useMutation<UpdateTaskStatusData>(
+    UPDATE_TASK_STATUS,
+    {
+      onCompleted: (data) => {
+        if (data?.updateTaskStatus?.task) {
+          refetchTasks();
+        }
+      },
+      onError: (error) => {
+        console.error("Error updating task status:", error);
+        alert("Failed to update task status: " + error.message);
+      },
     }
-  }, [organizationSlug]);
+  );
 
-  // Fetch tasks
-  const fetchTasks = useCallback(async () => {
-    if (!selectedProjectId) return;
-
-    setTasksLoading(true);
-
-    try {
-      const data = await graphqlClient.getTasks(selectedProjectId);
-      setTasks(data.allTasks);
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-      setTasks([]);
-    } finally {
-      setTasksLoading(false);
+  const [createTaskComment] = useMutation<CreateTaskCommentData>(
+    CREATE_TASK_COMMENT,
+    {
+      onCompleted: (data) => {
+        if (data?.createTaskComment?.comment) {
+          setCommentContent("");
+          setCommentTaskId(null);
+          refetchTasks(); // Refetch to get updated comments
+        }
+      },
+      onError: (error) => {
+        console.error("Error creating comment:", error);
+        alert("Failed to create comment: " + error.message);
+      },
     }
-  }, [selectedProjectId]);
+  );
 
-  // Effects
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-
-  useEffect(() => {
-    if (selectedProjectId) {
-      fetchTasks();
-    } else {
-      setTasks([]);
-    }
-  }, [fetchTasks, selectedProjectId]);
+  // Get data from Apollo queries with proper fallbacks
+  const projects: Project[] = projectsData?.allProjects || [];
+  const tasks: Task[] = tasksData?.allTasks || [];
 
   // Event handlers
   const handleCreateProject = async (): Promise<void> => {
     if (!newProjectName.trim()) return;
 
-    setCreateProjectLoading(true);
     try {
-      await graphqlClient.createProject({
-        name: newProjectName,
-        description: newProjectDescription,
-        organizationSlug,
+      await createProject({
+        variables: {
+          name: newProjectName,
+          description: newProjectDescription,
+          organizationSlug,
+        },
       });
-
-      setNewProjectName("");
-      setNewProjectDescription("");
-      setShowCreateProject(false);
-      await fetchProjects(); // Refresh projects
     } catch (error) {
-      console.error("Error creating project:", error);
-    } finally {
-      setCreateProjectLoading(false);
+      // Error is handled by onError callback
     }
   };
 
@@ -108,10 +146,11 @@ const ProjectDashboard = () => {
     status: string
   ): Promise<void> => {
     try {
-      await graphqlClient.updateTaskStatus(taskId, status);
-      await fetchTasks(); // Refresh tasks
+      await updateTaskStatus({
+        variables: { taskId, status },
+      });
     } catch (error) {
-      console.error("Error updating task status:", error);
+      // Error is handled by onError callback
     }
   };
 
@@ -119,17 +158,33 @@ const ProjectDashboard = () => {
     if (!commentContent.trim()) return;
 
     try {
-      await graphqlClient.createTaskComment({
-        taskId,
-        content: commentContent,
-        authorEmail: "user@example.com",
+      await createTaskComment({
+        variables: {
+          taskId,
+          content: commentContent,
+          authorEmail: "user@example.com",
+        },
       });
-
-      setCommentContent("");
-      setCommentTaskId(null);
-      // Note: In a real app, you'd want to refetch task comments here
     } catch (error) {
-      console.error("Error creating comment:", error);
+      // Error is handled by onError callback
+    }
+  };
+
+  const handleCreateTask = async (): Promise<void> => {
+    if (!newTaskTitle.trim() || !selectedProjectId) return;
+
+    try {
+      await createTask({
+        variables: {
+          projectId: selectedProjectId,
+          title: newTaskTitle,
+          description: newTaskDescription,
+          assigneeEmail: newTaskAssignee,
+          status: "TODO",
+        },
+      });
+    } catch (error) {
+      // Error is handled by onError callback
     }
   };
 
@@ -147,6 +202,7 @@ const ProjectDashboard = () => {
   };
 
   // Error handling
+  const error = projectsError || tasksError;
   if (error) {
     return (
       <div className="min-h-screen bg-red-50 flex items-center justify-center">
@@ -154,9 +210,16 @@ const ProjectDashboard = () => {
           <h1 className="text-2xl font-bold text-red-600 mb-4">
             Connection Error
           </h1>
-          <p className="text-gray-700">{error}</p>
+          <p className="text-gray-700">
+            {projectsError?.message ||
+              tasksError?.message ||
+              "Failed to fetch data. Make sure your Django server is running."}
+          </p>
           <button
-            onClick={fetchProjects}
+            onClick={() => {
+              refetchProjects();
+              if (selectedProjectId) refetchTasks();
+            }}
             className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
           >
             Retry
@@ -165,28 +228,6 @@ const ProjectDashboard = () => {
       </div>
     );
   }
-
-  const handleCreateTask = async (): Promise<void> => {
-    if (!newTaskTitle.trim() || !selectedProjectId) return;
-
-    try {
-      await graphqlClient.createTask({
-        projectId: selectedProjectId,
-        title: newTaskTitle,
-        description: newTaskDescription,
-        assigneeEmail: newTaskAssignee,
-        status: "TODO",
-      });
-
-      setNewTaskTitle("");
-      setNewTaskDescription("");
-      setNewTaskAssignee("");
-      setShowCreateTask(false);
-      await fetchTasks(); // Refresh tasks
-    } catch (error) {
-      console.error("Error creating task:", error);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -270,18 +311,6 @@ const ProjectDashboard = () => {
                     Cancel
                   </button>
                 </div>
-
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold">Tasks</h2>
-                  {selectedProjectId && (
-                    <button
-                      onClick={() => setShowCreateTask(!showCreateTask)}
-                      className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-                    >
-                      + New Task
-                    </button>
-                  )}
-                </div>
               </div>
             )}
 
@@ -352,7 +381,58 @@ const ProjectDashboard = () => {
 
           {/* Tasks Section */}
           <section className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-6">Tasks</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Tasks</h2>
+              {selectedProjectId && (
+                <button
+                  onClick={() => setShowCreateTask(!showCreateTask)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                >
+                  + New Task
+                </button>
+              )}
+            </div>
+
+            {/* Create Task Form */}
+            {showCreateTask && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <input
+                  type="text"
+                  placeholder="Task Title"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  className="w-full mb-2 border rounded px-3 py-2"
+                />
+                <textarea
+                  placeholder="Task Description"
+                  value={newTaskDescription}
+                  onChange={(e) => setNewTaskDescription(e.target.value)}
+                  className="w-full mb-2 border rounded px-3 py-2"
+                  rows={3}
+                />
+                <input
+                  type="email"
+                  placeholder="Assignee Email"
+                  value={newTaskAssignee}
+                  onChange={(e) => setNewTaskAssignee(e.target.value)}
+                  className="w-full mb-2 border rounded px-3 py-2"
+                />
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleCreateTask}
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                  >
+                    Create Task
+                  </button>
+                  <button
+                    onClick={() => setShowCreateTask(false)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {!selectedProjectId ? (
               <div className="text-center text-gray-500 py-12">
@@ -463,45 +543,6 @@ const ProjectDashboard = () => {
               </div>
             )}
           </section>
-
-          {showCreateTask && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <input
-                type="text"
-                placeholder="Task Title"
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                className="w-full mb-2 border rounded px-3 py-2"
-              />
-              <textarea
-                placeholder="Task Description"
-                value={newTaskDescription}
-                onChange={(e) => setNewTaskDescription(e.target.value)}
-                className="w-full mb-2 border rounded px-3 py-2"
-              />
-              <input
-                type="email"
-                placeholder="Assignee Email"
-                value={newTaskAssignee}
-                onChange={(e) => setNewTaskAssignee(e.target.value)}
-                className="w-full mb-2 border rounded px-3 py-2"
-              />
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleCreateTask}
-                  className="bg-green-500 text-white px-4 py-2 rounded"
-                >
-                  Create Task
-                </button>
-                <button
-                  onClick={() => setShowCreateTask(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

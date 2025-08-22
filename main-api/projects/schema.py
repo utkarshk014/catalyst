@@ -163,6 +163,82 @@ class CreateOrganization(graphene.Mutation):
             slug=slug
         )
         return CreateOrganization(organization=organization)
+    
+
+class AuthResponse(graphene.ObjectType):
+    success = graphene.Boolean()
+    message = graphene.String()
+    api_key = graphene.String()
+
+class SignUpOrganization(graphene.Mutation):
+    class Arguments:
+        name = graphene.String(required=True)
+        contact_email = graphene.String(required=True)
+        password = graphene.String(required=True)
+
+    Output = AuthResponse
+
+    @staticmethod
+    def mutate(root, info, name, contact_email, password):
+        # Check if organization with email already exists
+        if Organization.objects.filter(contact_email=contact_email).exists():
+            return AuthResponse(
+                success=False,
+                message="Organization with this email already exists",
+                api_key=None
+            )
+
+        try:
+            org = Organization.objects.create(
+                name=name,
+                contact_email=contact_email,
+                password=password  # Will be hashed in save() method
+            )
+            
+            return AuthResponse(
+                success=True,
+                message="Organization created successfully",
+                api_key=org.api_key
+            )
+        except Exception as e:
+            return AuthResponse(
+                success=False,
+                message=str(e),
+                api_key=None
+            )
+
+class LoginOrganization(graphene.Mutation):
+    class Arguments:
+        email = graphene.String(required=True)
+        password = graphene.String(required=True)
+
+    Output = AuthResponse
+
+    @staticmethod
+    def mutate(root, info, email, password):
+        try:
+            org = Organization.objects.get(contact_email=email)
+            
+            if org.check_password(password):
+                return AuthResponse(
+                    success=True,
+                    message="Login successful",
+                    api_key=org.api_key
+                )
+            else:
+                return AuthResponse(
+                    success=False,
+                    message="Invalid password",
+                    api_key=None
+                )
+                
+        except Organization.DoesNotExist:
+            return AuthResponse(
+                success=False,
+                message="Organization not found",
+                api_key=None
+            )
+
 
 class Mutation(graphene.ObjectType):
     create_organization = CreateOrganization.Field()
@@ -170,5 +246,7 @@ class Mutation(graphene.ObjectType):
     create_task = CreateTask.Field()  # This was missing in the second definition
     update_task_status = UpdateTaskStatus.Field()
     create_task_comment = CreateTaskComment.Field()
+    sign_up_organization = SignUpOrganization.Field()
+    login_organization = LoginOrganization.Field()
 
 schema = graphene.Schema(query=Query, mutation=Mutation)

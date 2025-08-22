@@ -2,6 +2,8 @@ from django.db import models
 from django.utils.text import slugify
 from django.urls import reverse
 from datetime import date
+import uuid
+import bcrypt
 
 STATUS_CHOICES = (
     ('ACTIVE', 'Active'),
@@ -19,11 +21,34 @@ class Organization(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True, blank=True)
     contact_email = models.EmailField()
+    password = models.CharField(max_length=255, default='')  # Storing hashed password
+    api_key = models.CharField(max_length=100, unique=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            # Create unique slug: name + random string
+            base_slug = slugify(self.name)
+            unique_id = str(uuid.uuid4())[:8]
+            self.slug = f"{base_slug}-{unique_id}"
+            
+        if not self.api_key:
+            # Generate unique API key
+            self.api_key = str(uuid.uuid4())
+
+        # Hash password if it's not already hashed
+        if not self.password.startswith('$2b$'):
+            self.password = bcrypt.hashpw(
+                self.password.encode('utf-8'), 
+                bcrypt.gensalt()
+            ).decode('utf-8')
+            
         super().save(*args, **kwargs)
+
+    def check_password(self, raw_password):
+        return bcrypt.checkpw(
+            raw_password.encode('utf-8'), 
+            self.password.encode('utf-8')
+        )
 
     def __str__(self):
         return self.name
