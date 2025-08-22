@@ -49,36 +49,36 @@ jobs:
           cd main-api
           python manage.py check
 
-    frontend-tests:
+  frontend-tests:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./frontend
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js 18
-      uses: actions/setup-node@v3
-      with:
-        node-version: "18"
-        cache: "npm"
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Run linting
-      run: npm run lint
+      - name: Run linting
+        run: npm run lint
 
-    - name: Run type checking
-      run: npm run type-check
+      - name: Run type checking
+        run: npm run type-check
 
-    - name: Build project
-      run: npm run build
+      - name: Build project
+        run: npm run build
 
-    - name: Run tests (if available)
-      run: npm test --if-present
+      - name: Run tests (if available)
+        run: npm test --if-present
 
   security-check:
     runs-on: ubuntu-latest
