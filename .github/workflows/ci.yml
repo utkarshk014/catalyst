@@ -7,76 +7,76 @@ on:
     branches: [main, develop]
 
 jobs:
-    backend-tests:
+  backend-tests:
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-    
-    - name: Install dependencies
-      run: |
-        cd main-api
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Run Django tests
-      run: |
-        cd main-api
-        python manage.py test --verbosity=2
-    
-    - name: Run Django migrations check
-      run: |
-        cd main-api
-        python manage.py makemigrations --check --dry-run
-    
-    - name: Check Django settings
-      run: |
-        cd main-api
-        python manage.py check
 
-    frontend-tests:
-    runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Node.js 18
-      uses: actions/setup-node@v3
-      with:
-        node-version: "18"
-        cache: "npm"
-    
-    - name: Install dependencies
-      run: |
-        cd frontend
-        npm ci
-    
-    - name: Run linting
-      run: |
-        cd frontend
-        npm run lint
-    
-    - name: Run type checking
-      run: |
-        cd frontend
-        npm run type-check
-    
-    - name: Build project
-      run: |
-        cd frontend
-        npm run build
-    
-    - name: Run tests (if available)
-      run: |
-        cd frontend
-        npm test --if-present
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd main-api
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Django tests
+        run: |
+          cd main-api
+          python manage.py test --verbosity=2
+
+      - name: Run Django migrations check
+        run: |
+          cd main-api
+          python manage.py makemigrations --check --dry-run
+
+      - name: Check Django settings
+        run: |
+          cd main-api
+          python manage.py check
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run linting
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run type checking
+        run: |
+          cd frontend
+          npm run type-check
+
+      - name: Build project
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Run tests (if available)
+        run: |
+          cd frontend
+          npm test --if-present
 
   security-check:
     runs-on: ubuntu-latest
