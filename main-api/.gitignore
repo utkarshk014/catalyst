@@ -1,0 +1,19 @@
+# This is a crucial step for version control and for ignoring sensitive
+# files and directories.
+git init
+
+# Create the .gitignore file to ignore virtual environments,
+# database files, and environment variables.
+# File: .gitignore
+# Environment variables
+.env
+
+# Python virtual environment
+venv/
+__pycache__/
+
+# Django specific
+*.pyc
+db.sqlite3
+.DS_Store
+media/
