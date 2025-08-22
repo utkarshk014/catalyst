@@ -2,9 +2,6 @@
 
 A modern, multi-tenant project management tool built with Django + GraphQL backend and React + TypeScript frontend.
 
-
-
-
 ## 🏗️ Architecture
 
 ```
