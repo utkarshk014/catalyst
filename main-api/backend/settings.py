@@ -115,12 +115,23 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database configuration
 # Use dj-database-url to parse the database URL from an environment variable.
 # IMPORTANT: This will now read from your .env file
-DATABASES = {
-    'default': dj_database_url.parse(
-        os.environ.get('DATABASE_URL'),
-        conn_max_age=600
-    )
-}
+# For CI/CD, use SQLite if no DATABASE_URL is provided
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            database_url,
+            conn_max_age=600
+        )
+    }
+else:
+    # Fallback for CI/CD or local development without .env
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 GRAPHENE = {
     'SCHEMA': 'projects.schema.schema',
