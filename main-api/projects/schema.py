@@ -35,6 +35,7 @@ class TaskCommentType(DjangoObjectType):
 
 # Queries: Define what data can be fetched
 class Query(graphene.ObjectType):
+    organization = graphene.Field(OrganizationType, slug=graphene.String(required=True))
     all_projects = graphene.List(ProjectType, organization_slug=graphene.String(required=True))
     all_tasks = graphene.List(TaskType, project_id=graphene.Int(required=True))
 
@@ -48,6 +49,12 @@ class Query(graphene.ObjectType):
 
     def resolve_all_tasks(self, info, project_id):
         return Task.objects.filter(project_id=project_id)
+    
+    def resolve_organization(self, info, slug):
+        try:
+            return Organization.objects.get(slug=slug)
+        except Organization.DoesNotExist:
+            return None
 
 # Mutations: Define how to create, update, and delete data
 class CreateProject(graphene.Mutation):
@@ -74,6 +81,33 @@ class CreateProject(graphene.Mutation):
             return CreateProject(project=project)
         except Organization.DoesNotExist:
             return CreateProject(project=None)
+        
+class CreateTask(graphene.Mutation):
+    class Arguments:
+        project_id = graphene.Int(required=True)
+        title = graphene.String(required=True)
+        description = graphene.String()
+        status = graphene.String()
+        assignee_email = graphene.String()
+        due_date = graphene.DateTime()
+
+    task = graphene.Field(TaskType)
+
+    @staticmethod
+    def mutate(root, info, project_id, title, description=None, status="TODO", assignee_email=None, due_date=None):
+        try:
+            project = Project.objects.get(id=project_id)
+            task = Task.objects.create(
+                project=project,
+                title=title,
+                description=description,
+                status=status,
+                assignee_email=assignee_email,
+                due_date=due_date
+            )
+            return CreateTask(task=task)
+        except Project.DoesNotExist:
+            raise Exception(f"Project with ID {project_id} does not exist")
 
 class UpdateTaskStatus(graphene.Mutation):
     class Arguments:
@@ -107,8 +141,33 @@ class CreateTaskComment(graphene.Mutation):
         )
         return CreateTaskComment(comment=comment)
 
+# class Mutation(graphene.ObjectType):
+#     create_project = CreateProject.Field()
+#     update_task_status = UpdateTaskStatus.Field()
+#     create_task_comment = CreateTaskComment.Field()
+#     create_task = CreateTask.Field()
+
+class CreateOrganization(graphene.Mutation):
+    class Arguments:
+        name = graphene.String(required=True)
+        contact_email = graphene.String(required=True)
+        slug = graphene.String()
+
+    organization = graphene.Field(OrganizationType)
+
+    @staticmethod
+    def mutate(root, info, name, contact_email, slug=None):
+        organization = Organization.objects.create(
+            name=name,
+            contact_email=contact_email,
+            slug=slug
+        )
+        return CreateOrganization(organization=organization)
+
 class Mutation(graphene.ObjectType):
+    create_organization = CreateOrganization.Field()
     create_project = CreateProject.Field()
+    create_task = CreateTask.Field()  # This was missing in the second definition
     update_task_status = UpdateTaskStatus.Field()
     create_task_comment = CreateTaskComment.Field()
 

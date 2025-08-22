@@ -24,6 +24,11 @@ const ProjectDashboard = () => {
     useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [newTaskAssignee, setNewTaskAssignee] = useState("");
+
   // Fetch projects
   const fetchProjects = useCallback(async () => {
     if (!organizationSlug) return;
@@ -161,6 +166,28 @@ const ProjectDashboard = () => {
     );
   }
 
+  const handleCreateTask = async (): Promise<void> => {
+    if (!newTaskTitle.trim() || !selectedProjectId) return;
+
+    try {
+      await graphqlClient.createTask({
+        projectId: selectedProjectId,
+        title: newTaskTitle,
+        description: newTaskDescription,
+        assigneeEmail: newTaskAssignee,
+        status: "TODO",
+      });
+
+      setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskAssignee("");
+      setShowCreateTask(false);
+      await fetchTasks(); // Refresh tasks
+    } catch (error) {
+      console.error("Error creating task:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -242,6 +269,18 @@ const ProjectDashboard = () => {
                   >
                     Cancel
                   </button>
+                </div>
+
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold">Tasks</h2>
+                  {selectedProjectId && (
+                    <button
+                      onClick={() => setShowCreateTask(!showCreateTask)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                    >
+                      + New Task
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -424,6 +463,45 @@ const ProjectDashboard = () => {
               </div>
             )}
           </section>
+
+          {showCreateTask && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <input
+                type="text"
+                placeholder="Task Title"
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                className="w-full mb-2 border rounded px-3 py-2"
+              />
+              <textarea
+                placeholder="Task Description"
+                value={newTaskDescription}
+                onChange={(e) => setNewTaskDescription(e.target.value)}
+                className="w-full mb-2 border rounded px-3 py-2"
+              />
+              <input
+                type="email"
+                placeholder="Assignee Email"
+                value={newTaskAssignee}
+                onChange={(e) => setNewTaskAssignee(e.target.value)}
+                className="w-full mb-2 border rounded px-3 py-2"
+              />
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleCreateTask}
+                  className="bg-green-500 text-white px-4 py-2 rounded"
+                >
+                  Create Task
+                </button>
+                <button
+                  onClick={() => setShowCreateTask(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
