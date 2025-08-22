@@ -9,6 +9,7 @@ import {
   User,
   ArrowLeft,
   Trash2,
+  Edit,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -72,11 +73,20 @@ const createTaskSchema = z.object({
   dueDate: z.date().optional(),
 });
 
+const updateTaskSchema = z.object({
+  title: z.string().min(1, "Task title is required"),
+  description: z.string().min(1, "Task description is required"),
+  status: z.string().min(1, "Status is required"),
+  assigneeEmail: z.string().email("Please enter a valid email address"),
+  dueDate: z.date().optional(),
+});
+
 const createCommentSchema = z.object({
   content: z.string().min(1, "Comment content is required"),
 });
 
 type CreateTaskFormData = z.infer<typeof createTaskSchema>;
+type UpdateTaskFormData = z.infer<typeof updateTaskSchema>;
 type CreateCommentFormData = z.infer<typeof createCommentSchema>;
 
 interface TasksViewProps {
@@ -93,6 +103,7 @@ export function TasksView({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTaskDrawerOpen, setIsTaskDrawerOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isUpdateTaskOpen, setIsUpdateTaskOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
   // Queries
@@ -107,7 +118,8 @@ export function TasksView({
   // Mutations
   const [createTask, { loading: createTaskLoading }] =
     useMutation<CreateTaskData>(CREATE_TASK);
-
+  const [updateTask, { loading: updateTaskLoading }] =
+    useMutation<UpdateTaskData>(UPDATE_TASK);
   const [updateTaskStatus, { loading: updateStatusLoading }] =
     useMutation<UpdateTaskStatusData>(UPDATE_TASK_STATUS);
   const [createTaskComment, { loading: createCommentLoading }] =
@@ -118,6 +130,16 @@ export function TasksView({
   // Form setup
   const createTaskForm = useForm<CreateTaskFormData>({
     resolver: zodResolver(createTaskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      status: "TODO",
+      assigneeEmail: "",
+    },
+  });
+
+  const updateTaskForm = useForm<UpdateTaskFormData>({
+    resolver: zodResolver(updateTaskSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -168,6 +190,54 @@ export function TasksView({
       toast({
         title: "Error",
         description: "Failed to create task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateTask = async (data: UpdateTaskFormData) => {
+    if (!selectedTask) return;
+
+    try {
+      await updateTask({
+        variables: {
+          taskId: selectedTask.id,
+          title: data.title,
+          description: data.description,
+          status: data.status,
+          assigneeEmail: data.assigneeEmail,
+          dueDate: data.dueDate ? data.dueDate.toISOString() : null,
+        },
+      });
+
+      toast({
+        title: "Success!",
+        description: "Task updated successfully",
+      });
+
+      setIsUpdateTaskOpen(false);
+      updateTaskForm.reset();
+      refetchTasks();
+
+      // Update the selectedTask in the drawer
+      if (selectedTask) {
+        setSelectedTask((prev) =>
+          prev
+            ? {
+                ...prev,
+                title: data.title,
+                description: data.description,
+                status: data.status,
+                assigneeEmail: data.assigneeEmail,
+                dueDate: data.dueDate ? data.dueDate.toISOString() : null,
+              }
+            : null
+        );
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update task",
         variant: "destructive",
       });
     }
@@ -224,6 +294,18 @@ export function TasksView({
         variant: "destructive",
       });
     }
+  };
+
+  const openUpdateTaskDialog = (task: Task) => {
+    setSelectedTask(task);
+    updateTaskForm.reset({
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      assigneeEmail: task.assigneeEmail,
+      dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+    });
+    setIsUpdateTaskOpen(true);
   };
 
   const handleCreateComment = async (data: CreateCommentFormData) => {
@@ -424,6 +506,108 @@ export function TasksView({
         </Dialog>
       </div>
 
+      {/* Update Task Dialog */}
+      <Dialog open={isUpdateTaskOpen} onOpenChange={setIsUpdateTaskOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Task</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={updateTaskForm.handleSubmit(handleUpdateTask)}
+            className="space-y-4"
+          >
+            <div>
+              <Label htmlFor="update-title">Task Title</Label>
+              <Input
+                id="update-title"
+                {...updateTaskForm.register("title")}
+                placeholder="Enter task title"
+              />
+              {updateTaskForm.formState.errors.title && (
+                <p className="text-sm text-destructive mt-1">
+                  {updateTaskForm.formState.errors.title.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="update-description">Description</Label>
+              <Textarea
+                id="update-description"
+                {...updateTaskForm.register("description")}
+                placeholder="Enter task description"
+                rows={3}
+              />
+              {updateTaskForm.formState.errors.description && (
+                <p className="text-sm text-destructive mt-1">
+                  {updateTaskForm.formState.errors.description.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="update-status">Status</Label>
+              <Select
+                value={updateTaskForm.watch("status")}
+                onValueChange={(value) =>
+                  updateTaskForm.setValue("status", value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODO">To Do</SelectItem>
+                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                  <SelectItem value="DONE">Done</SelectItem>
+                </SelectContent>
+              </Select>
+              {updateTaskForm.formState.errors.status && (
+                <p className="text-sm text-destructive mt-1">
+                  {updateTaskForm.formState.errors.status.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="update-assignee">Assignee Email</Label>
+              <Input
+                id="update-assignee"
+                type="email"
+                {...updateTaskForm.register("assigneeEmail")}
+                placeholder="Enter assignee email"
+              />
+              {updateTaskForm.formState.errors.assigneeEmail && (
+                <p className="text-sm text-destructive mt-1">
+                  {updateTaskForm.formState.errors.assigneeEmail.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="update-dueDate">Due Date</Label>
+              <Calendar
+                mode="single"
+                selected={updateTaskForm.watch("dueDate")}
+                onSelect={(date) => updateTaskForm.setValue("dueDate", date)}
+                className="rounded-md border"
+                disabled={(date) =>
+                  date < new Date(new Date().setHours(0, 0, 0, 0))
+                }
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsUpdateTaskOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateTaskLoading}>
+                {updateTaskLoading ? "Updating..." : "Update Task"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Tasks Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
         <TabsList>
@@ -524,6 +708,17 @@ export function TasksView({
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
+                        openUpdateTaskDialog(task);
+                      }}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         handleDeleteTask(task.id);
                       }}
                       disabled={deleteTaskLoading}
@@ -549,16 +744,27 @@ export function TasksView({
             <div className="space-y-6 mt-6">
               {/* Task Info */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Badge variant={getStatusBadgeVariant(selectedTask.status)}>
-                    {selectedTask.status}
-                  </Badge>
-                  {selectedTask.dueDate && (
-                    <PriorityBadge
-                      dueDate={selectedTask.dueDate}
-                      status={selectedTask.status}
-                    />
-                  )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={getStatusBadgeVariant(selectedTask.status)}>
+                      {selectedTask.status}
+                    </Badge>
+                    {selectedTask.dueDate && (
+                      <PriorityBadge
+                        dueDate={selectedTask.dueDate}
+                        status={selectedTask.status}
+                      />
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openUpdateTaskDialog(selectedTask)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Task
+                  </Button>
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">

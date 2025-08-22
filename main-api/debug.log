@@ -786,3 +786,30 @@ GraphQL query: query GetTasks($projectId: String!) {
     descr...
 API Key present: True
 Organization found: Nothing Phone
+GraphQL query: query GetProjects {
+  allProjects {
+    id
+    name
+    description
+    status
+    dueDate
+    taskC...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: mutation UpdateTask($taskId: String!, $title: String, $description: String, $status: String, $assign...
+API Key present: True
+Organization found: Nothing Phone
+GraphQL query: query GetTasks($projectId: String!) {
+  allTasks(projectId: $projectId) {
+    id
+    title
+    descr...
+API Key present: True
+Organization found: Nothing Phone
