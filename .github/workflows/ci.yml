@@ -19,21 +19,20 @@ jobs:
         with:
           python-version: "3.11"
 
-          - name: Install dependencies
-      run: |
-        cd main-api
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Setup environment
-      run: |
-        cd main-api
-        # Create a basic .env file for CI/CD if it doesn't exist
-        if [ ! -f .env ]; then
-          echo "DATABASE_URL=" > .env
-          echo "SECRET_KEY=ci-secret-key-for-testing" >> .env
-          echo "DEBUG=True" >> .env
-        fi
+      - name: Install dependencies
+        run: |
+          cd main-api
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Setup environment
+        run: |
+          cd main-api
+          if [ ! -f .env ]; then
+            echo "DATABASE_URL=" > .env
+            echo "SECRET_KEY=ci-secret-key-for-testing" >> .env
+            echo "DEBUG=True" >> .env
+          fi
 
       - name: Run Django tests
         run: |
@@ -63,11 +62,10 @@ jobs:
           node-version: "18"
           cache: "npm"
 
-          - name: Install dependencies
-      run: |
-        cd frontend
-        npm install
-        npm install --package-lock-only
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm install
 
       - name: Run linting
         run: |
